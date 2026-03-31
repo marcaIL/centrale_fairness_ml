@@ -5,6 +5,14 @@ build/
 dist/
 wheels/
 *.egg-info
+.DS_Store
 
 # Virtual environments
 .venv
+
+#images and models weights 
+training_mitigated_output/
+training_no_race_output/
+training_output/ 
+comparison_output/
+

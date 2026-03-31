@@ -24,14 +24,17 @@ mlready_train_df, mlready_test_df = train_test_split(mlready_df, test_size=0.5, 
 scaler = StandardScaler()
 mlready_train_df[NUMERICAL_FEATURES] = scaler.fit_transform(mlready_train_df[NUMERICAL_FEATURES])
 mlready_test_df[NUMERICAL_FEATURES] = scaler.transform(mlready_test_df[NUMERICAL_FEATURES])
-os.makedirs("training_output/scalers", exist_ok=True)
-joblib.dump(scaler, 'training_output/scalers/scaler_original_dataset.save') 
+os.makedirs("training_no_race_output/scalers", exist_ok=True)
+joblib.dump(scaler, 'training_no_race_output/scalers/scaler_original_dataset.save') 
 
-#X,y for train and test
-X_train = mlready_train_df.drop(columns=[TARGET])
+ml_ready_train_df_no_race = mlready_train_df.drop(columns=[col for col in mlready_train_df.columns if col.startswith('race_')])
+ml_ready_test_df_no_race = mlready_test_df.drop(columns=[col for col in mlready_test_df.columns if col.startswith('race_')])
+
+# Features for train and test without race
+X_train_no_race = ml_ready_train_df_no_race.drop(columns=[TARGET])
+X_test_no_race = ml_ready_test_df_no_race.drop(columns=[TARGET])
+
 y_train = mlready_train_df[TARGET]
-
-X_test = mlready_test_df.drop(columns=[TARGET])
 y_test = mlready_test_df[TARGET]
 
 #Hyperparameter tuning for Logistic Regression
@@ -40,17 +43,17 @@ param_grid_logreg = {
 }
 
 grid_logreg = GridSearchCV(LogisticRegression(), param_grid_logreg, cv=5, scoring='f1')
-grid_logreg.fit(X_train, y_train)
+grid_logreg.fit(X_train_no_race, y_train)
 print(f"best parameter Logistic Regression : {grid_logreg.best_params_}")
 
 #Logistic regression training and evaluation
 logistic_model = LogisticRegression(C = grid_logreg.best_params_['C'], max_iter=1000)
-logistic_model.fit(X_train, y_train)
-y_hat_logreg = logistic_model.predict(X_test)
-proba_logreg = logistic_model.predict_proba(X_test)[:, 1]
+logistic_model.fit(X_train_no_race, y_train)
+y_hat_logreg = logistic_model.predict(X_test_no_race)
+proba_logreg = logistic_model.predict_proba(X_test_no_race)[:, 1]
 print(classification_report(y_test, y_hat_logreg))
-os.makedirs("training_output/models_weights", exist_ok=True)
-joblib.dump(logistic_model, 'training_output/models_weights/logreg_naive.save')
+os.makedirs("training_no_race_output/models_weights", exist_ok=True)
+joblib.dump(logistic_model, 'training_no_race_output/models_weights/logreg_naive.save')
 
 #Hyperparameter tuning for XGBoost
 param_grid_xgb = {
@@ -60,7 +63,7 @@ param_grid_xgb = {
 }
 
 grid_xgb = GridSearchCV(XGBClassifier(), param_grid_xgb, cv=5, scoring='f1')
-grid_xgb.fit(X_train, y_train)
+grid_xgb.fit(X_train_no_race, y_train)
 print(f"best parameters XGB : {grid_xgb.best_params_}")
 
 #XGBoost training and evaluation
@@ -73,12 +76,12 @@ xgb_classifier = XGBClassifier(
     eval_metric='logloss'
 )
 
-xgb_classifier.fit(X_train, y_train) 
-y_hat_xgb = xgb_classifier.predict(X_test)
-proba_xgb = xgb_classifier.predict_proba(X_test)[:, 1]
+xgb_classifier.fit(X_train_no_race, y_train) 
+y_hat_xgb = xgb_classifier.predict(X_test_no_race)
+proba_xgb = xgb_classifier.predict_proba(X_test_no_race)[:, 1]
 print(classification_report(y_test, y_hat_xgb))
-os.makedirs("training_output/models_weights", exist_ok=True)
-joblib.dump(xgb_classifier, 'training_output/models_weights/xgb_naive.save')
+os.makedirs("training_no_race_output/models_weights", exist_ok=True)
+joblib.dump(xgb_classifier, 'training_no_race_output/models_weights/xgb_naive.save')
 
 #ROC curves
 logreg_roc = roc_curve(y_test, proba_logreg)
@@ -92,8 +95,8 @@ plt.ylabel('True Positive Rate')
 plt.title('ROC Curve')
 plt.grid()
 plt.legend()
-os.makedirs("training_output/images", exist_ok=True)
-plt.savefig('training_output/images/roc_curves.png')
+os.makedirs("training_no_race_output/images", exist_ok=True)
+plt.savefig('training_no_race_output/images/roc_curves.png')
 
 #Fairness metrics 
 gold_test_df = ml2gold(mlready_test_df, scaler)
@@ -108,20 +111,19 @@ metrics_xgb = compute_metrics(gold_test_df, model_prediction='xgb_pred')
 save_model_comparison(metrics_logreg[0], 
                       metrics_xgb[0], 
                       title_suffix="race",
-                      path = "training_output/images/")
+                      path = "training_no_race_output/images/")
 
 # Age
 save_model_comparison(metrics_logreg[1], 
                       metrics_xgb[1], 
                       title_suffix="age",
-                      path = "training_output/images/")
+                      path = "training_no_race_output/images/")
 
 # Sex
 save_model_comparison(metrics_logreg[2],
                       metrics_xgb[2],
                       title_suffix="sex",
-                      path = "training_output/images/")
-
+                      path = "training_no_race_output/images/")
 
 #Equal opportunity bias
 #vars
@@ -171,10 +173,10 @@ print(f"Probabilité groupe privilégié XGBoost: {results_xgb['tpr_privileged']
 print(f"Probabilité groupe défavorisé XGBoost: {results_xgb['tpr_deprived']:.2f}")
 print(f"Biais de discrimination XGBoost: {results_xgb['equal_opportunity_bias']:.2f}")
 
-#shap values
-X_test_sample = X_test.sample(min(500, len(X_test)), random_state=42)
+# SHAP values
+X_test_sample = X_test_no_race.sample(min(500, len(X_test_no_race)), random_state=42)
 
-explainer_logreg = shap.Explainer(logistic_model, X_train) 
+explainer_logreg = shap.Explainer(logistic_model, X_train_no_race) 
 shap_values_logreg = explainer_logreg(X_test_sample)
 
 explainer_xgb = shap.Explainer(xgb_classifier)
@@ -186,7 +188,7 @@ def save_shap_bar(shap_values, title, filename):
     shap.plots.bar(shap_values, show=False)
     plt.title(title)
     plt.tight_layout()
-    plt.savefig(f'training_output/images/{filename}.png')
+    plt.savefig(f'training_no_race_output/images/{filename}.png')
     plt.close()
 
 save_shap_bar(shap_values_logreg, "Global Feature Importance - Logistic Regression", "shap_logreg")
