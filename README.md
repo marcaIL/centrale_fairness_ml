@@ -56,7 +56,11 @@ centrale_fairness_ml/
 │   ├── models_naive_training.py           # Naive model training (with race)
 │   ├── models_naive_no_race_training.py   # Naive model training (without race)
 │   ├── bias_mitigation.py                 # Bias mitigation via sample reweighting
-│   └── models_comparison.py              # Cross-model ROC curves comparison
+│   ├── models_comparison.py              # Cross-model ROC curves comparison
+│   └── privacy_attacks/
+│       ├── aia_utils.py                          # Shared helpers for the AIA
+│       ├── attribute_inference_race.py           # AIA on race (3 training variants)
+│       └── defense_output_perturbation.py        # Output perturbation defense (naive only)
 ```
 ## Usage
 
@@ -73,8 +77,10 @@ The scripts are executed in the following order:
 2. `models_naive_no_race_training.py` — trains models without race features
 3. `bias_mitigation.py` — trains models with sample reweighting to mitigate racial bias
 4. `models_comparison.py` — compares all 6 models with ROC curves
+5. `privacy_attacks/attribute_inference_race.py` — black-box AIA on `race` against the 6 models
+6. `privacy_attacks/defense_output_perturbation.py` — output perturbation defense applied to the naive models, with privacy/utility trade-off
 
-> **Note:** `models_comparison.py` requires the outputs of the three previous scripts (saved model weights and scalers).
+> **Note:** `models_comparison.py` and the privacy scripts require the outputs of the three training scripts (saved model weights and scalers).
 
 ## Project Details
 
@@ -139,3 +145,4 @@ The comparison script produces:
 - `matplotlib` — visualizations
 - `shap` — feature importance and model interpretability
 - `joblib` — model serialization
+- `adversarial-robustness-toolbox` — privacy attacks toolkit (AIA reference)

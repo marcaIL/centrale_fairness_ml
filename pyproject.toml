@@ -12,4 +12,5 @@ dependencies = [
     "shap>=0.49.1",
     "xgboost>=2.1.4",
     "joblib>=1.4.2",
+    "adversarial-robustness-toolbox>=1.18.0",
 ]
