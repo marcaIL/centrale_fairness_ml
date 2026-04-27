@@ -163,13 +163,13 @@ results_xgb = equal_opportunity_bias(
     model_pred = 'xgb_pred'
 )
 
-print(f"Probabilité groupe privilégié logistic regression: {results_log_reg['tpr_privileged']:.2f}")
-print(f"Probabilité groupe défavorisé logistic regression: {results_log_reg['tpr_deprived']:.2f}")
-print(f"Biais de discrimination logistic regression: {results_log_reg['equal_opportunity_bias']:.2f}")
+print(f"Privileged group probability logistic regression: {results_log_reg['tpr_privileged']:.2f}")
+print(f"Deprived group probability logistic regression: {results_log_reg['tpr_deprived']:.2f}")
+print(f"Discrimination bias logistic regression: {results_log_reg['equal_opportunity_bias']:.2f}")
 
-print(f"Probabilité groupe privilégié XGBoost: {results_xgb['tpr_privileged']:.2f}")
-print(f"Probabilité groupe défavorisé XGBoost: {results_xgb['tpr_deprived']:.2f}")
-print(f"Biais de discrimination XGBoost: {results_xgb['equal_opportunity_bias']:.2f}")
+print(f"Privileged group probability XGBoost: {results_xgb['tpr_privileged']:.2f}")
+print(f"Deprived group probability XGBoost: {results_xgb['tpr_deprived']:.2f}")
+print(f"Discrimination bias XGBoost: {results_xgb['equal_opportunity_bias']:.2f}")
 
 #shap values
 X_test_sample = X_test.sample(min(500, len(X_test)), random_state=42)

@@ -52,9 +52,9 @@ results = calculate_discrimination_bias(
     positive_label=0
 )
 
-print(f"Probabilité groupe privilégié (w): {results['prob_privileged']:.2f}")
-print(f"Probabilité groupe défavorisé (b): {results['prob_deprived']:.2f}")
-print(f"Biais de discrimination: {results['discrimination_bias']:.2f}")
+print(f"Privileged group probability (w): {results['prob_privileged']:.2f}")
+print(f"Deprived group probability (b): {results['prob_deprived']:.2f}")
+print(f"Discrimination bias: {results['discrimination_bias']:.2f}")
 
 
 def bias_mitigation(gold_df, ml_ready_df, sensitive_col, target_col, privileged_values, deprived_values, positive_label):
@@ -222,13 +222,13 @@ results_xgb = equal_opportunity_bias(
     model_pred = 'xgb_pred'
 )
 
-print(f"Probabilité groupe privilégié logistic regression: {results_log_reg['tpr_privileged']:.2f}")
-print(f"Probabilité groupe défavorisé logistic regression: {results_log_reg['tpr_deprived']:.2f}")
-print(f"Biais de discrimination logistic regression: {results_log_reg['equal_opportunity_bias']:.2f}")
+print(f"Privileged group probability logistic regression: {results_log_reg['tpr_privileged']:.2f}")
+print(f"Deprived group probability logistic regression: {results_log_reg['tpr_deprived']:.2f}")
+print(f"Discrimination bias logistic regression: {results_log_reg['equal_opportunity_bias']:.2f}")
 
-print(f"Probabilité groupe privilégié XGBoost: {results_xgb['tpr_privileged']:.2f}")
-print(f"Probabilité groupe défavorisé XGBoost: {results_xgb['tpr_deprived']:.2f}")
-print(f"Biais de discrimination XGBoost: {results_xgb['equal_opportunity_bias']:.2f}")
+print(f"Privileged group probability XGBoost: {results_xgb['tpr_privileged']:.2f}")
+print(f"Deprived group probability XGBoost: {results_xgb['tpr_deprived']:.2f}")
+print(f"Discrimination bias XGBoost: {results_xgb['equal_opportunity_bias']:.2f}")
 
 #shap values 
 X_test_sample = X_test.sample(min(500, len(X_test)), random_state=42)
@@ -241,21 +241,21 @@ shap_values_xgb = explainer_xgb(X_test_sample)
 
 
 """
-Comparaison du biais d'égalité des chances AVANT et APRÈS mitigation
+Comparison of equal opportunity bias BEFORE and AFTER mitigation
 """
-# Charger les modèles naïfs (avant mitigation)
+# Load naive models (before mitigation)
 logreg_naive = joblib.load('training_output/models_weights/logreg_naive.save')
 xgb_naive = joblib.load('training_output/models_weights/xgb_naive.save')
 
-# Prédictions sur le même X_test
+# Predictions on the same X_test
 logreg_naive_pred = logreg_naive.predict(X_test)
 xgb_naive_pred = xgb_naive.predict(X_test)
 
-# Ajouter les prédictions au gold_test_df pour analyse
+# Add predictions to gold_test_df for analysis
 gold_test_df['logreg_naive_pred'] = logreg_naive_pred
 gold_test_df['xgb_naive_pred'] = xgb_naive_pred
 
-# Calcul du biais d'égalité des chances pour les modèles naïfs
+# Compute equal opportunity bias for naive models
 results_logreg_naive = equal_opportunity_bias(
     gold_test_df,
     sensitive_col='race',
@@ -276,14 +276,14 @@ results_xgb_naive = equal_opportunity_bias(
     model_pred='xgb_naive_pred'
 )
 
-print("\n--- AVANT MITIGATION ---")
-print(f"Probabilité groupe privilégié logistic regression (naive): {results_logreg_naive['tpr_privileged']:.2f}")
-print(f"Probabilité groupe défavorisé logistic regression (naive): {results_logreg_naive['tpr_deprived']:.2f}")
-print(f"Biais de discrimination logistic regression (naive): {results_logreg_naive['equal_opportunity_bias']:.2f}")
+print("\n--- BEFORE MITIGATION ---")
+print(f"Privileged group probability logistic regression (naive): {results_logreg_naive['tpr_privileged']:.2f}")
+print(f"Deprived group probability logistic regression (naive): {results_logreg_naive['tpr_deprived']:.2f}")
+print(f"Discrimination bias logistic regression (naive): {results_logreg_naive['equal_opportunity_bias']:.2f}")
 
-print(f"Probabilité groupe privilégié XGBoost (naive): {results_xgb_naive['tpr_privileged']:.2f}")
-print(f"Probabilité groupe défavorisé XGBoost (naive): {results_xgb_naive['tpr_deprived']:.2f}")
-print(f"Biais de discrimination XGBoost (naive): {results_xgb_naive['equal_opportunity_bias']:.2f}")
+print(f"Privileged group probability XGBoost (naive): {results_xgb_naive['tpr_privileged']:.2f}")
+print(f"Deprived group probability XGBoost (naive): {results_xgb_naive['tpr_deprived']:.2f}")
+print(f"Discrimination bias XGBoost (naive): {results_xgb_naive['equal_opportunity_bias']:.2f}")
 
 def save_shap_bar(shap_values, title, filename):
     plt.figure(figsize=(10, 6))

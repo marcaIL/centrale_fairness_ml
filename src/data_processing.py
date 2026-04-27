@@ -1,6 +1,6 @@
 import pandas as pd
 
-#DATA PREPROCESSING 
+#DATA PREPROCESSING
 
 class DataPreprocessor:
     def __init__(self, raw_df : pd.DataFrame):
@@ -30,7 +30,7 @@ class DataPreprocessor:
     
     def gold2ml(self, gold_df : pd.DataFrame) -> pd.DataFrame: 
         mlready_df = gold_df
-        #Dummify
+        #One-hot encode categorical features
         mlready_df = pd.get_dummies(mlready_df, columns=["sex", "c_charge_degree", "race"])
         return mlready_df
 
