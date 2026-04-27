@@ -57,10 +57,14 @@ centrale_fairness_ml/
 │   ├── models_naive_no_race_training.py   # Naive model training (without race)
 │   ├── bias_mitigation.py                 # Bias mitigation via sample reweighting
 │   ├── models_comparison.py              # Cross-model ROC curves comparison
-│   └── privacy_attacks/
+│   ├── privacy_attacks/
 │       ├── aia_utils.py                          # Shared helpers for the AIA
 │       ├── attribute_inference_race.py           # AIA on race (3 training variants)
 │       └── defense_output_perturbation.py        # Output perturbation defense (naive only)
+│   └── adversarial_attacks/
+│       ├── evasion_utils.py                      # PGD attack + SmoothedModel wrapper
+│       ├── evasion_attack.py                     # Evasion attack on naive models (race stratified)
+│       └── evasion_defenses.py                   # Adv. training vs randomized smoothing
 ```
 ## Usage
 
@@ -79,6 +83,8 @@ The scripts are executed in the following order:
 4. `models_comparison.py` — compares all 6 models with ROC curves
 5. `privacy_attacks/attribute_inference_race.py` — black-box AIA on `race` against the 6 models
 6. `privacy_attacks/defense_output_perturbation.py` — output perturbation defense applied to the naive models, with privacy/utility trade-off
+7. `adversarial_attacks/evasion_attack.py` — PGD evasion attack on naive models, stratified by race
+8. `adversarial_attacks/evasion_defenses.py` — adversarial training vs randomized smoothing defense comparison
 
 > **Note:** `models_comparison.py` and the privacy scripts require the outputs of the three training scripts (saved model weights and scalers).
 
@@ -146,3 +152,54 @@ The comparison script produces:
 - `shap` — feature importance and model interpretability
 - `joblib` — model serialization
 - `adversarial-robustness-toolbox` — privacy attacks toolkit (AIA reference)
+
+## Privacy Attacks
+
+### Attribute Inference Attack (AIA) on `race`
+
+A black-box attacker observes the non-race features of a record plus the model's
+positive-class probability, and tries to predict whether the record belongs to
+the **privileged** race group or the **deprived** group.
+
+The attack is run on the 6 models (LogReg + XGBoost × naive / no_race / mitigated).
+
+Outputs:
+- `privacy_output/reports/aia_race_results.csv`
+- `privacy_output/images/aia_race_comparison.png`
+
+### Defense — Output Perturbation (naive models only)
+
+Four perturbation strategies are applied to the naive models' `predict_proba`:
+`none`, `label_only`, `rounding` (k=2,1,0), `laplace` noise (b=0.05–0.30).
+
+Outputs:
+- `privacy_output/reports/defense_perturbation_results.csv`
+- `privacy_output/images/privacy_utility_tradeoff.png`
+
+## Adversarial Attacks
+
+### Evasion Attack (PGD)
+
+A PGD evasion attack perturbs numerical features within an L∞ epsilon-ball to
+flip the model prediction from `recid=1` to `recid=0`. Gradients are estimated
+via finite differences (works for both LogReg and XGBoost).
+
+The attack is stratified by race group to measure **differential vulnerability**.
+
+Outputs:
+- `adversarial_output/reports/evasion_attack_results.csv`
+- `adversarial_output/images/evasion_attack_results.png`
+
+### Defenses: Adversarial Training vs Randomized Smoothing
+
+Two defenses are compared on the naive models:
+
+- **Adversarial Training**: retrain on original + adversarial examples (ε=0.3)
+- **Randomized Smoothing**: average predictions over 30 Gaussian-noised copies (σ=0.25)
+
+For each defense, the PGD attack is re-run at multiple epsilon values.
+
+Outputs:
+- `adversarial_output/reports/defense_comparison_results.csv`
+- `adversarial_output/images/defense_comparison.png`
+

@@ -42,5 +42,17 @@ echo "============================================================"
 PYTHONPATH=src $UV run python -m src.privacy_attacks.defense_output_perturbation
 
 echo ""
+echo "============================================================"
+echo "Running adversarial_attacks/evasion_attack.py ..."
+echo "============================================================"
+PYTHONPATH=src $UV run python -m src.adversarial_attacks.evasion_attack
+
+echo ""
+echo "============================================================"
+echo "Running adversarial_attacks/evasion_defenses.py ..."
+echo "============================================================"
+PYTHONPATH=src $UV run python -m src.adversarial_attacks.evasion_defenses
+
+echo ""
 echo "All scripts completed successfully."
 
