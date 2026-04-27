@@ -14,18 +14,7 @@ A machine learning project analyzing fairness in predictive models using the COM
 
 - **macOS or Linux**
 - **Python 3.9+**
-- **uv** (fast Python package installer and resolver)
-
-Install uv if you don't have it:
-```bash
-# macOS (using Homebrew)
-brew install uv
-
-# Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Or visit: https://github.com/astral-sh/uv
-```
+- **uv** 
 
 ## Installation
 
@@ -86,12 +75,6 @@ The scripts are executed in the following order:
 4. `models_comparison.py` — compares all 6 models with ROC curves
 
 > **Note:** `models_comparison.py` requires the outputs of the three previous scripts (saved model weights and scalers).
-
-### Explore the data
-
-```bash
-uv run jupyter notebook explo.ipynb
-```
 
 ## Project Details
 

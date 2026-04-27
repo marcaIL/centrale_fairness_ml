@@ -240,6 +240,51 @@ explainer_xgb = shap.Explainer(xgb_classifier)
 shap_values_xgb = explainer_xgb(X_test_sample)
 
 
+"""
+Comparaison du biais d'égalité des chances AVANT et APRÈS mitigation
+"""
+# Charger les modèles naïfs (avant mitigation)
+logreg_naive = joblib.load('training_output/models_weights/logreg_naive.save')
+xgb_naive = joblib.load('training_output/models_weights/xgb_naive.save')
+
+# Prédictions sur le même X_test
+logreg_naive_pred = logreg_naive.predict(X_test)
+xgb_naive_pred = xgb_naive.predict(X_test)
+
+# Ajouter les prédictions au gold_test_df pour analyse
+gold_test_df['logreg_naive_pred'] = logreg_naive_pred
+gold_test_df['xgb_naive_pred'] = xgb_naive_pred
+
+# Calcul du biais d'égalité des chances pour les modèles naïfs
+results_logreg_naive = equal_opportunity_bias(
+    gold_test_df,
+    sensitive_col='race',
+    target_col='is_recid',
+    privileged_values=privileged_values_race,
+    deprived_values=deprived_values_race,
+    positive_label=0,
+    model_pred='logreg_naive_pred'
+)
+
+results_xgb_naive = equal_opportunity_bias(
+    gold_test_df,
+    sensitive_col='race',
+    target_col='is_recid',
+    privileged_values=privileged_values_race,
+    deprived_values=deprived_values_race,
+    positive_label=0,
+    model_pred='xgb_naive_pred'
+)
+
+print("\n--- AVANT MITIGATION ---")
+print(f"Probabilité groupe privilégié logistic regression (naive): {results_logreg_naive['tpr_privileged']:.2f}")
+print(f"Probabilité groupe défavorisé logistic regression (naive): {results_logreg_naive['tpr_deprived']:.2f}")
+print(f"Biais de discrimination logistic regression (naive): {results_logreg_naive['equal_opportunity_bias']:.2f}")
+
+print(f"Probabilité groupe privilégié XGBoost (naive): {results_xgb_naive['tpr_privileged']:.2f}")
+print(f"Probabilité groupe défavorisé XGBoost (naive): {results_xgb_naive['tpr_deprived']:.2f}")
+print(f"Biais de discrimination XGBoost (naive): {results_xgb_naive['equal_opportunity_bias']:.2f}")
+
 def save_shap_bar(shap_values, title, filename):
     plt.figure(figsize=(10, 6))
     shap.plots.bar(shap_values, show=False)

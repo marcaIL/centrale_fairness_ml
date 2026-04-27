@@ -2,7 +2,7 @@
 
 set -e  # Stop on first error
 
-UV=/Users/marceau_bouilly/.asdf/installs/uv/0.10.6/bin/uv
+UV=$(command -v uv || echo "uv")
 
 cd "$(dirname "$0")"
 
