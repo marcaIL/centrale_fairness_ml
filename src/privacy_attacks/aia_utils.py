@@ -5,17 +5,10 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_sco
 from sklearn.model_selection import train_test_split
 
 from data_processing import DataPreprocessor
-from utils import DATA_PATH, NUMERICAL_FEATURES, TARGET
+from config import DATA_PATH, NUMERICAL_FEATURES, TARGET, PRIVILEGED_RACES, DEPRIVED_RACES, RACE_COLUMNS, SPLIT_RANDOM_STATE, TEST_SIZE
 import joblib
 
-# Same groups as in bias_mitigation.py
-PRIVILEGED_RACES = ['Caucasian', 'Asian', 'Hispanic', 'Other']
-DEPRIVED_RACES = ['African-American', 'Native American']
 
-RACE_COLUMNS = [
-    'race_African-American', 'race_Asian', 'race_Caucasian',
-    'race_Hispanic', 'race_Native American', 'race_Other'
-]
 PRIVILEGED_RACE_COLS = [f'race_{r}' for r in PRIVILEGED_RACES]
 
 
@@ -23,7 +16,7 @@ def load_test_data(scaler_path='training_output/scalers/scaler_original_dataset.
     """Load COMPAS and return the standardized test set + binary race target."""
     raw_df = pd.read_csv(DATA_PATH)
     mlready_df, _ = DataPreprocessor(raw_df=raw_df).preprocess()
-    _, mlready_test_df = train_test_split(mlready_df, test_size=0.5, random_state=1234)
+    _, mlready_test_df = train_test_split(mlready_df, test_size=TEST_SIZE, random_state=SPLIT_RANDOM_STATE)
 
     scaler = joblib.load(scaler_path)
     mlready_test_df = mlready_test_df.copy()

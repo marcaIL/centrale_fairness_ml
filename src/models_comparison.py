@@ -5,7 +5,8 @@ from sklearn.metrics import auc, roc_auc_score, roc_curve
 import matplotlib.pyplot as plt
 import joblib
 import os
-from utils import NUMERICAL_FEATURES, CATEGORICAL_FEATURES, TARGET, DATA_PATH, compute_metrics, ml2gold, save_model_comparison 
+from config import NUMERICAL_FEATURES, CATEGORICAL_FEATURES, TARGET, DATA_PATH
+from utils import compute_metrics, ml2gold, save_model_comparison
 from data_processing import DataPreprocessor
 import shap     
 

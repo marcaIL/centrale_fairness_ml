@@ -1,46 +1,107 @@
 import pandas as pd 
 import numpy as np 
 import matplotlib.pyplot as plt
+import shap
+import os
 
-# Vars 
-DATA_PATH = "data/compas-scores-two-years.csv"
+from config import (
+    DATA_PATH,
+    NUMERICAL_FEATURES,
+    CATEGORICAL_FEATURES,
+    TARGET,
+    PRIVILEGED_RACES,
+    DEPRIVED_RACES,
+    SHAP_SAMPLE_SIZE,
+    SHAP_SAMPLE_RANDOM_STATE,
+)
 
-NUMERICAL_FEATURES = [
-                      'age', 
-                      'juv_fel_count', 
-                      'juv_misd_count', 
-                      'juv_other_count', 
-                      'priors_count', 
-                      'jail_duration', 
-                      'time_btw_offense_and_jail'
-                      ]
+# Re-export config constants for backward compatibility
+__all__ = [
+    "DATA_PATH",
+    "NUMERICAL_FEATURES",
+    "CATEGORICAL_FEATURES",
+    "TARGET",
+    "PRIVILEGED_RACES",
+    "DEPRIVED_RACES",
+    "compute_metrics",
+    "reverse_dummify",
+    "reverse_scaling",
+    "ml2gold",
+    "save_model_comparison",
+    "equal_opportunity_bias",
+    "calculate_discrimination_bias",
+    "save_shap_bar",
+]
 
-CATEGORICAL_FEATURES = [
-                        'sex_Female', 
-                        'sex_Male',
-                        'c_charge_degree_F', 
-                        'c_charge_degree_M', 
-                        'race_African-American',
-                        'race_Asian', 
-                        'race_Caucasian', 
-                        'race_Hispanic', 
-                        'race_Native American',
-                        'race_Other'
-                        ]
 
-TARGET = 'is_recid'
+# ── Fairness functions (deduplicated) ────────────────────────────────────────
 
-# Utils
-def compute_metrics(df, model_prediction = None): 
+def equal_opportunity_bias(gold_df, sensitive_col, target_col, privileged_values, deprived_values, positive_label, model_pred):
     """
-    Compute and print recidivism rates by race, age category, and sex, and optionally compare with model predictions.
-    Args:       
-        - df (pd.DataFrame): The input DataFrame containing the data.
-        - model_prediction (str, optional): The column name of the model's predictions to compare against. Defaults to None.
-    Returns:        
-        None: Prints the computed metrics to the console.
+    Compute Equal Opportunity bias between privileged and deprived groups.
+    Returns TPR for each group and the bias score (TPR_privileged - TPR_deprived).
     """
+    privileged_group = gold_df[gold_df[sensitive_col].isin(privileged_values)]
+    deprived_group = gold_df[gold_df[sensitive_col].isin(deprived_values)]
 
+    tpr_privileged = (
+        ((privileged_group[target_col] == positive_label) & (privileged_group[model_pred] == positive_label)).sum()
+        / (privileged_group[target_col] == positive_label).sum()
+    )
+    tpr_deprived = (
+        ((deprived_group[target_col] == positive_label) & (deprived_group[model_pred] == positive_label)).sum()
+        / (deprived_group[target_col] == positive_label).sum()
+    )
+
+    bias_score = tpr_privileged - tpr_deprived
+
+    return {
+        "tpr_privileged": tpr_privileged,
+        "tpr_deprived": tpr_deprived,
+        "equal_opportunity_bias": bias_score,
+    }
+
+
+def calculate_discrimination_bias(df, sensitive_col, target_col, privileged_values, deprived_values, positive_label):
+    """
+    Compute discrimination bias as the difference in positive-label rates
+    between privileged and deprived groups.
+    """
+    privileged_group = df[df[sensitive_col].isin(privileged_values)]
+    prob_privileged = (privileged_group[target_col] == positive_label).mean()
+
+    deprived_group = df[df[sensitive_col].isin(deprived_values)]
+    prob_deprived = (deprived_group[target_col] == positive_label).mean()
+
+    bias_score = prob_privileged - prob_deprived
+
+    return {
+        "prob_privileged": prob_privileged,
+        "prob_deprived": prob_deprived,
+        "discrimination_bias": bias_score,
+    }
+
+
+def save_shap_bar(shap_values, title, filename, output_dir):
+    """
+    Save a SHAP bar plot to *output_dir*/<filename>.png.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    plt.figure(figsize=(10, 6))
+    shap.plots.bar(shap_values, show=False)
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, f"{filename}.png"))
+    plt.close()
+
+
+# ── Metric computation ───────────────────────────────────────────────────────
+
+def compute_metrics(df, model_prediction=None):
+    """
+    Compute and print recidivism rates by race, age category, and sex,
+    and optionally compare with model predictions.
+    """
     metrics_ethnic = df.groupby('race').agg({'is_recid':['sum', 'count']})
     metrics_ethnic['Rate'] = round(100 * metrics_ethnic[('is_recid', 'sum')] / metrics_ethnic[('is_recid', 'count')], 2)
     metrics_ethnic['Recid'] = metrics_ethnic[('is_recid', 'sum')]
@@ -93,6 +154,9 @@ def compute_metrics(df, model_prediction = None):
 
     return metrics_ethnic, metrics_age, metrics_sex
 
+
+# ── Data transformation helpers ──────────────────────────────────────────────
+
 def reverse_dummify(df):
     analysis_df = df.copy()
     
@@ -120,12 +184,16 @@ def ml2gold(df, scaler):
     df = reverse_scaling(df, scaler)
     return df
 
-def save_model_comparison(metrics_logreg, metrics_xgb, title_suffix="", path = "training_output/images/"):
+
+# ── Visualization ────────────────────────────────────────────────────────────
+
+def save_model_comparison(metrics_logreg, metrics_xgb, title_suffix="", path="training_output/images/"):
     """
     Generate and save comparative bar plots from the metrics DataFrames.
     Bar heights represent recidivism counts, labels show recidivism rates.
     """
-    # Data extraction
+    os.makedirs(path, exist_ok=True)
+
     labels = metrics_logreg.index
     real_rate = metrics_logreg['Rate']
     logreg_rate = metrics_logreg['Model_Rate']
@@ -139,19 +207,16 @@ def save_model_comparison(metrics_logreg, metrics_xgb, title_suffix="", path = "
     
     fig, ax = plt.subplots(figsize=(12, 6))
     
-    # Barplots creation - heights represent recidivism counts
     rects1 = ax.bar(x - width, real_recid, width, label='Real', color='#34495e')
     rects2 = ax.bar(x, logreg_recid, width, label='LogReg', color='#3498db')
     rects3 = ax.bar(x + width, xgb_recid, width, label='XGBoost', color='#e67e22')
     
-    # Titles and labels
     ax.set_ylabel('Number of Recidivisms')
     ax.set_title(f'Rate Comparison : Real vs Models ({title_suffix})')
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=15)
     ax.legend()
     
-    # Adding rate labels on top of the bars
     def autolabel(rects, rates):
         for i, rect in enumerate(rects):
             height = rect.get_height()
@@ -168,5 +233,5 @@ def save_model_comparison(metrics_logreg, metrics_xgb, title_suffix="", path = "
     autolabel(rects3, xgb_rate)
     
     plt.tight_layout()
-    plt.savefig(f'{path}{title_suffix}_comparison.png')
+    plt.savefig(os.path.join(path, f'{title_suffix}_comparison.png'))
     plt.close()
